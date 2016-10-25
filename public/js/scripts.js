@@ -48,11 +48,15 @@ $(function() {
     // options for map
     // https://developers.google.com/maps/documentation/javascript/reference#MapOptions
     var options = {
-        center: {lat: 37.4236, lng: -122.1619}, // Stanford, California
+        center: {lat: 32.7673, lng: -96.77}, // Dallas, Texas
         disableDefaultUI: true,
         mapTypeId: google.maps.MapTypeId.ROADMAP,
         maxZoom: 14,
+        //https://developers.google.com/maps/documentation/javascript/controls
         panControl: true,
+        rotateControl: true,
+        scaleControl: true,
+        streetViewControl: true,
         styles: styles,
         zoom: 13,
         zoomControl: true
@@ -72,9 +76,55 @@ $(function() {
 /**
  * Adds marker for place to map.
  */
-function addMarker(place)
-{
-    // TODO
+ function addMarker(place)
+ {
+    // configure marker
+    var marker = new MarkerWithLabel ({
+        
+        position: {lat: parseFloat(place.latitude), lng: parseFloat(place.longitude)},
+        map: map,
+        labelContent: place.place_name,
+        icon: 'img/pin.svg',
+        draggable: true,
+        raiseOnDrag: true,
+        labelAnchor: new google.maps.Point(22, 0),
+        labelClass: "labels", // the CSS class for the label
+        labelStyle: {opacity: 0.75}
+
+    });
+
+    // We have to populate this array for the removeMarkers() function.
+    markers.push(marker);
+
+    // Display info window on click
+    google.maps.event.addListener(marker, 'click', function(){
+        showInfo(marker);
+
+        $.getJSON("articles.php", {geo: place.postal_code})
+
+        .done(function(data, textStatus, jqXHR)
+        {
+        	// Build up html for info window
+            var content = "<ul>";
+            for (i = 0; i < data.length; i++)
+            {
+                content += "<li><a href=\"" + data[i].link + "\">" + data[i].title + "</a></li>";
+            }
+            content += "</ul>";
+            if (data.length == 0)
+            {
+                content = "It's an uneventful day today:)";
+            }
+            showInfo(marker, content);
+        })
+
+        .fail(function(jqXHR, textStatus, errorThrown)
+        {
+            // log error to browser's console
+            console.dir(errorThrown.toString());
+        });
+
+    });
 }
 
 /**
@@ -108,7 +158,7 @@ function configure()
         source: search,
         templates: {
             empty: "no places found yet",
-            suggestion: _.template("<p>TODO</p>")
+            suggestion: _.template("<p><%- place_name %>, <%- admin_name1 %>, <%- postal_code %></p>")
         }
     });
 
@@ -160,6 +210,11 @@ function hideInfo()
 function removeMarkers()
 {
     // TODO
+    for (i = 0; i < markers.length; i++)
+    {
+        var marker = markers[i];
+        marker.setMap(null);
+    }
 }
 
 /**
